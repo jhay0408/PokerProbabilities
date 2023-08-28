@@ -1,10 +1,13 @@
 import random
 
+suits = ['♥', '♦', '♣', '♠']
+ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+
+
 def deck_list():
-    suits = ['♥', '♦', '♣', '♠']
-    ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
     deck = [(rank, suit) for suit in suits for rank in ranks]
     return deck
+
 
 def sim_hands(deck, hand, board = []):
     # Initialise
@@ -14,8 +17,14 @@ def sim_hands(deck, hand, board = []):
     deck = [card for card in deck if card not in hand + board]
     # Find how many cards have been dealt to board
     n = len(board)
+    if n < 3:
+        no_boards = 1000
+        no_hands = 100
+    else:
+        no_hands = 1000
+        no_boards = 100
 
-    for sim_wins in range(1000):
+    for sim_wins in range(no_hands):
         # Shuffle the deck
         random.shuffle(deck)
         # Give the opponent cards
@@ -25,15 +34,28 @@ def sim_hands(deck, hand, board = []):
         # Simulating boards
         board_wins = 0
         board_plays = 0
-        for sim_boards in range(10000):
+        for sim_boards in range(no_boards):
             # Simulate the full board
             full_board = board + sim_board(sim_deck, n)
             op_comb = op_hand + full_board
             my_comb = hand + full_board
             op_rank = eval_hand(op_comb)
             my_rank = eval_hand(my_comb)
-            if my_rank > op_rank:
+            if my_rank[0] > op_rank[0]:
                 board_wins += 1
+            elif my_rank[0] == op_rank[0]:
+                if my_rank[1] > op_rank[1]:
+                    board_wins += 1
+                elif my_rank[1] == op_rank[1]:
+                    try:
+                        my_sec = my_rank[2]
+                        op_sec = op_rank[2]
+                        if my_sec > op_sec:
+                            board_wins += 1
+                        elif my_sec == op_sec:
+                            board_wins += 0.5
+                    except IndexError:
+                        board_wins += 0.5
             board_plays += 1
         wins += (board_wins/board_plays)
         hands += 1
@@ -67,8 +89,8 @@ def eval_hand(hand):
     copy_hand = hand_ranks.copy()
     unique_ranks = list(set(hand_ranks))
     for i in range(len(unique_ranks)):
-        if unique_ranks[i][0] in ranks:
-            copy_hand.remove(unique_ranks[i][0])
+        if unique_ranks[i] in ranks:
+            copy_hand.remove(unique_ranks[i])
     for rank in copy_hand:
         pair_test = ranks.index(rank)
         pairs.append(pair_test)
@@ -96,14 +118,16 @@ def eval_hand(hand):
     # Check straight
     straight_rank = (0, 0)
     copy_hand2 = hand_ranks.copy()
-    copy_hand2 = sorted(copy_hand2, key=lambda x: ranks.index(x))
+    copy_hand2 = sorted(list(set(copy_hand2)), key=lambda x: ranks.index(x))
     straight_rank_test = [ranks.index(rank) for rank in copy_hand2]
-    for i in range(3):
+    for i in range(len(straight_rank_test)-4):
         if (straight_rank_test[i] + 1 == straight_rank_test[i+1]) and (
                 straight_rank_test[i+1] + 1 == straight_rank_test[i+2]) and (
                 straight_rank_test[i+2] + 1 == straight_rank_test[i+3]) and (
                 straight_rank_test[i+3] + 1 == straight_rank_test[i+4]):
             straight_rank = (5, straight_rank_test[i+4])
+            index = straight_rank_test.index(straight_rank[1])
+            copy_hand2a = copy_hand2[index-4:index+1]
 
     # Check flush
     flush_rank = (0, 0)
@@ -115,9 +139,9 @@ def eval_hand(hand):
         suit = suits.index(copy_hand3[i])
         suit_count[suit] += 1
     for i in range(4):
-        if suit_count[i]>=5:
+        if suit_count[i] >= 5:
             flush_hand = [rank[0] for rank in hand if rank[1] == suits[i]]
-            flush_hand.sort()
+            flush_hand = sorted(flush_hand, key=lambda x: ranks.index(x))
             flush_hand = flush_hand[-5:]
             flush_rank = (6, ranks.index(flush_hand[-1]))
 
@@ -141,7 +165,7 @@ def eval_hand(hand):
 
     # Check straight flush
     straight_flush_rank = (0, 0)
-    if straight_rank[0] != 0 and flush_rank[0] != 0 and copy_hand2[0] == flush_hand[0] and straight_rank[1] == flush_rank[1]:
+    if straight_rank[0] != 0 and flush_rank[0] != 0 and copy_hand2a[0] == flush_hand[0] and straight_rank[1] == flush_rank[1]:
         straight_flush_rank = (9, straight_rank[1])
 
     # Check royal flush
@@ -157,21 +181,68 @@ def eval_hand(hand):
     return eval
 
 
-def input_hand():
-    pass
+def input_hand(hand_string):
+    rank_strings = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    suit_strings = ['H', 'D', 'C', 'S']
+    hand_string = hand_string.split(', ')
+    for i in range(len(hand_string)):
+        if len(hand_string[i]) == 3:
+            hand_string[i] = [hand_string[i][0:2], hand_string[i][2]]
+        else:
+            hand_string[i] = list(hand_string[i])
+    card1_value = hand_string[0][0]
+    card1_suit = hand_string[0][1]
+    card2_value = hand_string[1][0]
+    card2_suit = hand_string[1][1]
+    hand = [(ranks[rank_strings.index(card1_value)], suits[suit_strings.index(card1_suit)]),
+            (ranks[rank_strings.index(card2_value)], suits[suit_strings.index(card2_suit)])]
+    return hand
 
 
-def input_board():
-    pass
+def input_board(board_string):
+    rank_strings = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    suit_strings = ['H', 'D', 'C', 'S']
+    board_string = board_string.split(', ')
+    board = []
+    for i in range(len(board_string)):
+        if len(board_string[i]) == 3:
+            board_string[i] = [board_string[i][0:2], board_string[i][2]]
+        else:
+            board_string[i] = list(board_string[i])
+    for i in range(len(board_string)):
+        board.append((ranks[rank_strings.index(board_string[i][0])],
+                      suits[suit_strings.index(board_string[i][1])]))
+    return board
 
 
 def run():
-    pass
+    # Get initial deck
+    deck = deck_list()
+    # Get input hand
+    hand_string = input("Input Hand: ")
+    hand = input_hand(hand_string)
+    # Run prob
+    pre_flop_prob = sim_hands(deck, hand)
+    print(f'Probability of hand winning: {pre_flop_prob*100:.2f}%')
+    # Get flop cards
+    board_string = input("Input Flop: ")
+    board = input_board(board_string)
+    # Run prob
+    flop_prob = sim_hands(deck, hand, board)
+    print(f'Probability of hand winning: {flop_prob * 100:.2f}%')
+    # Get turn
+    board_string = input("Input Turn: ")
+    board += input_board(board_string)
+    # Run prob
+    turn_prob = sim_hands(deck, hand, board)
+    print(f'Probability of hand winning: {turn_prob * 100:.2f}%')
+    # Get river
+    board_string = input("Input River: ")
+    board += input_board(board_string)
+    # Run prob
+    river_prob = sim_hands(deck, hand, board)
+    print(f'Probability of hand winning: {river_prob * 100:.2f}%')
+    
 
-
-hand = [('5', '♠'), ('5', '♥')]
-deck = deck_list()
-deck = list(set(deck) - set(hand))
-board = sim_board(deck, 0)
-full = hand + board
-print(eval_hand(full))
+# TODO Extensions: Plot graph of sets that occur for a given hand
+# TODO List hands that beat the given hand
