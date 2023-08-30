@@ -9,19 +9,22 @@ def deck_list():
     return deck
 
 
-def sim_hands(deck, hand, board = []):
+def sim_hands(hand):
     # Initialise
     wins = 0
     hands = 0
+    deck = deck_list()
+    board = hand[2:]
+    hand = hand[0:2]
     # Update deck with my hand and board already there
     deck = [card for card in deck if card not in hand + board]
     # Find how many cards have been dealt to board
     n = len(board)
     if n < 3:
-        no_boards = 1000
+        no_boards = 500
         no_hands = 100
     else:
-        no_hands = 1000
+        no_hands = 500
         no_boards = 100
 
     for sim_wins in range(no_hands):
@@ -44,18 +47,23 @@ def sim_hands(deck, hand, board = []):
             if my_rank[0] > op_rank[0]:
                 board_wins += 1
             elif my_rank[0] == op_rank[0]:
-                if my_rank[1] > op_rank[1]:
-                    board_wins += 1
-                elif my_rank[1] == op_rank[1]:
-                    try:
-                        my_sec = my_rank[2]
-                        op_sec = op_rank[2]
-                        if my_sec > op_sec:
-                            board_wins += 1
-                        elif my_sec == op_sec:
+                try:
+                    if my_rank[1] > op_rank[1]:
+                        board_wins += 1
+                    elif my_rank[1] == op_rank[1]:
+                        try:
+                            my_sec = my_rank[2]
+                            op_sec = op_rank[2]
+                            if my_sec > op_sec:
+                                board_wins += 1
+                            elif my_sec == op_sec:
+                                board_wins += 0.5
+                        except IndexError:
                             board_wins += 0.5
-                    except IndexError:
-                        board_wins += 0.5
+                except IndexError:
+                    board_wins += 0.5
+                    pass
+            #         both have a royal flush
             board_plays += 1
         wins += (board_wins/board_plays)
         hands += 1
@@ -215,6 +223,18 @@ def input_board(board_string):
     return board
 
 
+def full_convert(full):
+    board = []
+    for i in range(len(full)):
+        if len(full[i]) == 3:
+            full[i] = [full[i][0:2], full[i][2]]
+        else:
+            full[i] = list(full[i])
+    for i in range(len(full)):
+        board.append((full[i][0], full[i][1]))
+    return board
+
+
 def run():
     # Get initial deck
     deck = deck_list()
@@ -222,27 +242,28 @@ def run():
     hand_string = input("Input Hand: ")
     hand = input_hand(hand_string)
     # Run prob
-    pre_flop_prob = sim_hands(deck, hand)
+    pre_flop_prob = sim_hands(hand)
     print(f'Probability of hand winning: {pre_flop_prob*100:.2f}%')
     # Get flop cards
     board_string = input("Input Flop: ")
     board = input_board(board_string)
+    hand += board
     # Run prob
-    flop_prob = sim_hands(deck, hand, board)
+    flop_prob = sim_hands(hand)
     print(f'Probability of hand winning: {flop_prob * 100:.2f}%')
     # Get turn
     board_string = input("Input Turn: ")
-    board += input_board(board_string)
+    hand += input_board(board_string)
     # Run prob
-    turn_prob = sim_hands(deck, hand, board)
+    turn_prob = sim_hands(hand)
     print(f'Probability of hand winning: {turn_prob * 100:.2f}%')
     # Get river
     board_string = input("Input River: ")
-    board += input_board(board_string)
+    hand += input_board(board_string)
     # Run prob
-    river_prob = sim_hands(deck, hand, board)
+    river_prob = sim_hands(hand)
     print(f'Probability of hand winning: {river_prob * 100:.2f}%')
-    
+
 
 # TODO Extensions: Plot graph of sets that occur for a given hand
 # TODO List hands that beat the given hand
