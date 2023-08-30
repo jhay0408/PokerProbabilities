@@ -1,0 +1,123 @@
+from tkinter import *
+from tkinter.font import Font
+from Poker_Functions import *
+import threading
+
+root = Tk()
+root.title("Poker Probability Calculator")
+root.iconbitmap('chips.ico')
+
+cards = ["2♥", "3♥", "4♥", "5♥", "6♥", "7♥", "8♥", "9♥", "10♥", "J♥", "Q♥", "K♥", "A♥",
+         "2♦", "3♦", "4♦", "5♦", "6♦", "7♦", "8♦", "9♦", "10♦", "J♦", "Q♦", "K♦", "A♦",
+         "2♣", "3♣", "4♣", "5♣", "6♣", "7♣", "8♣", "9♣", "10♣", "J♣", "Q♣", "K♣", "A♣",
+         "2♠", "3♠", "4♠", "5♠", "6♠", "7♠", "8♠", "9♠", "10♠", "J♠", "Q♠", "K♠", "A♠"]
+
+card_width = 6
+card_height = 4
+sr = 1
+sc = 0
+custom_font = Font(family="Helvetica", size=14)
+card_count = 0
+total_labels = [0]*7
+total_cards = []
+prob_label = None
+
+
+def get_card(card):
+    global card_count
+    global total_labels
+    global total_cards
+    if card not in total_cards:
+        if card_count < 2:
+            total_labels[card_count] = Label(root, text=card, width=card_width, height=card_height, font=custom_font, fg='green')
+            total_labels[card_count].grid(row=0, column=6+card_count)
+            total_cards.append(card)
+            card_count += 1
+        elif card_count < 7:
+            total_labels[card_count] = Label(root, text=card, width=card_width, height=card_height, font=custom_font, fg='blue')
+            total_labels[card_count].grid(row=0, column=6+card_count)
+            total_cards.append(card)
+            card_count += 1
+
+
+def clear_board():
+    global card_count
+    global total_labels  # Assuming 'label_list' is a list of labels
+    global total_cards
+    global prob_label
+
+    for i in range(card_count):
+        if i < len(total_labels):
+            label = total_labels[i]
+            label.grid_forget()  # Remove the label from the grid
+
+    if prob_label is not None:
+        prob_label.grid_forget()
+        prob_label = None
+
+    label_list = []  # Clear the 'label_list'
+    total_cards = []
+    card_count = 0
+
+
+def calculate():
+    global total_cards
+    global prob_label
+
+    if prob_label is not None:
+        prob_label.grid_forget()
+        prob_label = None
+    # use full convert to convert from total cards into hands you can use
+    full = full_convert(total_cards)
+    # pass deck and hands into sim_hands(deck, hand)
+    prob = sim_hands(full)
+    # print the output to a label widget next to calculate
+    prob_label = Label(root, text=f'{prob:.2f}', font=custom_font, width=2*card_width, height=card_height)
+    prob_label.grid(row=0, column=2, columnspan=2)
+    # remove this widget when clearing the board
+    pass
+
+
+def check_num_cards():
+    global total_cards
+    global calc_button
+    if len(total_cards) in [0, 1, 3, 4]:
+        calc_button.config(state="disabled")
+    else:
+        calc_button.config(state="normal")
+    root.after(500, check_num_cards)
+
+
+def background_thread():
+    check_num_cards()
+
+
+calc_button = Button(root, text="Calculate", font=custom_font, width=2*card_width, height=card_height,
+                     command=lambda: calculate())
+calc_button.grid(row=0, column=0, columnspan=2)
+
+# Buttons
+for i in range(0, 52):
+    if i <= 12:
+        Button(root, text=cards[i], width=card_width, height=card_height, font=custom_font, fg='red',
+               command=lambda i=i: get_card(cards[i])).grid(row=sr, column=sc+i)
+    elif i <= 25:
+        Button(root, text=cards[i], width=card_width, height=card_height, font=custom_font, fg='red',
+               command=lambda i=i: get_card(cards[i])).grid(row=sr+1, column=(sc+i) % 13)
+    elif i <= 38:
+        Button(root, text=cards[i], width=card_width, height=card_height, font=custom_font, fg='black',
+               command=lambda i=i: get_card(cards[i])).grid(row=sr+2, column=(sc+i) % 13)
+    else:
+        Button(root, text=cards[i], width=card_width, height=card_height, font=custom_font, fg='black',
+               command=lambda i=i: get_card(cards[i])).grid(row=sr+3, column=(sc+i) % 13)
+
+Button(root, text="New Hand", width=2*card_width, height=card_height, font=custom_font,
+       command=lambda: clear_board()).grid(row=0, column=sc+4, columnspan=2)
+
+
+# Call background_thread to continuously run check_global_variable
+background_thread = threading.Thread(target=background_thread)
+background_thread.daemon = True  # The thread will terminate when the main program exits
+background_thread.start()
+
+root.mainloop()
